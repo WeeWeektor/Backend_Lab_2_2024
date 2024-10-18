@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from app.data import user
+from app.data import user, category
 from app.services import get_user_by_id
 
 
@@ -38,3 +38,38 @@ def init_routes(app):
     @app.get('/users')
     def get_users():
         return user.users
+
+    @app.get('/category')
+    def get_category():
+        return category.categories
+
+    @app.post('/category')
+    def new_category():
+        category_data = request.get_json()
+        request_category_name = category_data.get('name')
+        request_category_description = category_data.get('description')
+
+        if request_category_name and request_category_description is not None:
+            category.new_categories(request_category_name, request_category_description)
+            return jsonify({'message': f'New category {request_category_name} created!'}), 201
+        else:
+            return jsonify({'error': 'Missing values!'}), 400
+
+    @app.delete('/category')
+    def delete_category():
+        category_data = request.get_json()
+        request_category_name = category_data.get('name')
+        request_category_id = category_data.get('id')
+
+        if not request_category_name and request_category_id is None:
+            return jsonify({'error': 'Missing category identifier (name or id)!'}), 400
+
+        found_category = next((c for c in category.categories if c['id'] == request_category_id), None)
+        if not found_category:
+            found_category = next((c for c in category.categories if c['name'] == request_category_name), None)
+        if not found_category:
+            return jsonify({'error': 'Category not found!'}), 404
+
+        category.categories.remove(found_category)
+        return jsonify(
+            {'message': f'Category {found_category["name"]}(id={found_category["id"]}) deleted successfully!'}), 200
