@@ -1,6 +1,6 @@
 from flask import jsonify, request
-from app.data import user, category
-from app.services import get_user_by_id
+from app.data import user, category, record
+from app.services import get_user_by_id, get_record_by_id, get_record_by_user_id, get_record_by_category_id
 
 
 def init_routes(app):
@@ -73,3 +73,48 @@ def init_routes(app):
         category.categories.remove(found_category)
         return jsonify(
             {'message': f'Category {found_category["name"]}(id={found_category["id"]}) deleted successfully!'}), 200
+
+    @app.get('/record/<string:record_id>')
+    def get_record(record_id):
+        found_record = get_record_by_id(record_id)
+        if found_record is None:
+            return jsonify({'error': 'Record not found!'}), 404
+        return jsonify(found_record), 200
+
+    @app.get('/record')
+    def ger_records():
+        user_id = request.args.get('user id')
+        category_id = request.args.get('category id')
+
+        if user_id is None and category_id is None:
+            return jsonify({'error': 'Missing query parameters: user id or category id!'}), 400
+
+        filtered_records = record.records
+        if user_id:
+            filtered_records = get_record_by_user_id(user_id)
+        if category_id:
+            filtered_records = get_record_by_category_id(category_id)
+
+        return jsonify(filtered_records), 200
+
+    @app.post('/record')
+    def create_record():
+        record_data = request.get_json()
+        request_record_user_id = record_data.get('user id')
+        request_record_category_id = record_data.get('category id')
+        request_record_amount_of_expenses = record_data.get('amount of expenses')
+
+        if request_record_category_id and request_record_user_id and request_record_amount_of_expenses is not None:
+            new_reco = record.new_record(request_record_user_id, request_record_category_id,
+                                         request_record_amount_of_expenses)
+            return jsonify({'message': f"New record id={new_reco['id']} created!"}), 201
+        else:
+            return jsonify({'error': 'Missing parameters: user id or category id or amount of expenses!'}), 400
+
+    @app.delete('/record/<string:record_id>')
+    def delete_record(record_id):
+        found_record = get_record_by_id(record_id)
+        if found_record is None:
+            return jsonify({'error': 'Record not found!'}), 404
+        record.records.remove(found_record)
+        return jsonify({'message': f'Record {record_id} deleted successfully!'}), 200
