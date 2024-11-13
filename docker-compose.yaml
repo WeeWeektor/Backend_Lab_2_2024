@@ -7,6 +7,19 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      PORT: "8081"
+      DATABASE_URI_DEV: "${DATABASE_URI_DEV}"
+      FLASK_APP: "app.py"
+      PORT: "8082"
     ports:
-      - "8082:8081"
+      - "8082:8082"
+    depends_on:
+      - postgresLab_3
+
+  postgresLab_3:
+    image: postgres
+    environment:
+      POSTGRES_DB: "${DATABASE_NAME}"
+      POSTGRES_USER: "${DATABASE_USER}"
+      POSTGRES_PASSWORD: "${DATABASE_PASSWORD}"
+    ports:
+      - "5434:5432"
