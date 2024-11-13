@@ -37,6 +37,8 @@ Thumbs.db
 # Environment variables
 .env
 
+..*.env
+
 # Docker
 *.env
 .dockerignore
