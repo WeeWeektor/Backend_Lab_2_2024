@@ -30,7 +30,7 @@ def create_new_category(cur, category_name, category_description):
 
 def create_new_record(cur, user_id, category_id, price, currency_id):
     try:
-        adding_time = datetime.datetime.now(pytz.timezone('Europe/Kyiv')).strftime("%d-%m-%Y %H:%M:%S")
+        adding_time = datetime.datetime.now(pytz.timezone('Europe/Kyiv')).strftime("%Y-%m-%d %H:%M:%S")
         cur.execute(f'''INSERT INTO "Record" (user_id, category_id, date, total_price, currency_id) 
                     VALUES (%s, %s, %s, %s, %s)''', (user_id, category_id, adding_time, price, currency_id))
         cur.connection.commit()
