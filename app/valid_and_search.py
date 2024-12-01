@@ -24,3 +24,9 @@ def if_currency_in_db(cur, name):
     result = cur.fetchone()
     cur.close()
     return result if result else False
+
+def if_user_name_in_db(cur, name):
+    cur.execute(f'''SELECT 'user_name' FROM "User" WHERE "user_name" = %s''', (name,))
+    result = cur.fetchone()
+    cur.close()
+    return result[0] if result else False
