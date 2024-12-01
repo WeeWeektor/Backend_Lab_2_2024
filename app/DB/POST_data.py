@@ -1,16 +1,18 @@
+from passlib.handlers.pbkdf2 import pbkdf2_sha256
 from .PATCH_data import get_currency_from_db
 import datetime
 import pytz
 
 
-def create_new_user(cur, user_name, currency_name):
+def create_new_user(cur, user_name, currency_name, user_password):
     try:
         if currency_name is None:
             currency_name = "USD"
         currency_id_ = get_currency_from_db(cur, str(currency_name))
-        cur.execute('''INSERT INTO "User" ("user_name", currency_id) VALUES (%s, %s)''', (user_name, currency_id_))
+        sha256_user_password = pbkdf2_sha256.hash(user_password)
+        cur.execute('''INSERT INTO "User" ("user_name", currency_id, "password") VALUES (%s, %s, %s)''',
+                    (user_name, currency_id_, sha256_user_password))
         cur.connection.commit()
-        cur.close()
         return {'Successful': f'New user with name - {user_name} create with default currency {currency_name}'}, 201
     except Exception as e:
         cur.connection.rollback()
