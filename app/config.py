@@ -11,3 +11,4 @@ else:
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 API_TITLE = "Cost Categories REST API"
 API_VERSION = "v1"
+JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
