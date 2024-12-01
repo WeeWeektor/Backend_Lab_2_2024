@@ -1,14 +1,18 @@
 from flask import jsonify, request
-from .DB.GET_data import get_users_from_db, get_user_from_db, get_all_categories, get_record_by_id, get_currency_from_db
+from flask_jwt_extended import jwt_required, create_access_token
+from .DB.GET_data import get_users_from_db, get_user_from_db, get_all_categories, get_record_by_id, \
+    get_currency_from_db
 from .DB.DELETE_data import delete_data_from_db
 from .DB.PATCH_data import patch_user_in_db
 from .DB.POST_data import create_new_user, create_new_category, create_new_record, create_new_currency
-from .valid_and_search import is_valid_uuid, search_data_in_db, if_currency_in_db
+from .valid_and_search import is_valid_uuid, search_data_in_db, if_currency_in_db, if_user_name_in_db
 from .DB.connection import conn
+from .DB.User_logining import user_log_in_app
 
 
 def init_routes(app):
     @app.route('/user/<string:user_id>', methods=['GET', 'DELETE', 'PATCH'])
+    @jwt_required()
     def get_delete_or_patch_user(user_id):
         if not is_valid_uuid(user_id):
             return jsonify({'error': 'Invalid user_id format. Expected UUID.'}), 400
@@ -31,37 +35,66 @@ def init_routes(app):
         elif request.method == 'PATCH':
             data = request.get_json()
             new_name = data.get('name')
+            if new_name is not None:
+                with conn.cursor() as cur:
+                    if if_user_name_in_db(cur, new_name):
+                        return jsonify({'error': 'This name already exists. Enter another name.'}), 400
             new_currency = data.get('new default currency')
             with conn.cursor() as cur:
                 patch_us, status_code = patch_user_in_db(cur, user_id, new_name, new_currency)
             return jsonify(patch_us), status_code
 
-    @app.post('/user')
+    @app.post('/user_registration')
     def create_user():
         user_data = request.get_json()
         request_user_name = user_data.get('name')
         request_currency_name = user_data.get('currency name')
+        request_user_password = user_data.get('password')
 
-        if request_user_name is not None:
+        if request_user_name is not None and request_user_password is not None:
             with conn.cursor() as cur:
-                post_user, status_code = create_new_user(cur, request_user_name, request_currency_name)
+                if if_user_name_in_db(cur, request_user_name):
+                    return jsonify({'error': 'This name already exists. Enter another name.'}), 400
+            with conn.cursor() as cur:
+                post_user, status_code = create_new_user(cur, request_user_name, request_currency_name,
+                                                         request_user_password)
             return jsonify(post_user), status_code
         else:
             return jsonify({'error': 'Missing values!'}), 400
 
+    @app.get('/user_logining')
+    def user_logining():
+        user_data = request.get_json()
+        request_user_name = user_data.get('name')
+        request_user_password = user_data.get('password')
+
+        if request_user_name is not None and request_user_password is not None:
+            with conn.cursor() as cur:
+                logining, u_id = user_log_in_app(cur, request_user_name, request_user_password)
+            if logining:
+                access_token = create_access_token(identity=u_id)
+                return jsonify({'message': 'logining successful', 'Access token': access_token}), 200
+            else:
+                return jsonify({'error': u_id}), 400
+        else:
+            return jsonify({'error': 'Missing values!'}), 400
+
     @app.get('/users')
+    @jwt_required()
     def get_users():
         with conn.cursor() as cur:
             users_data = get_users_from_db(cur)
         return jsonify(users_data), 200
 
     @app.get('/category')
+    @jwt_required()
     def get_category():
         with conn.cursor() as cur:
             categories_data = get_all_categories(cur)
         return jsonify(categories_data), 200
 
     @app.post('/category')
+    @jwt_required()
     def new_category():
         category_data = request.get_json()
         request_category_name = category_data.get('name')
@@ -76,6 +109,7 @@ def init_routes(app):
             return jsonify({'error': 'Missing values!'}), 400
 
     @app.delete('/category')
+    @jwt_required()
     def delete_category():
         category_data = request.get_json()
         request_category_id = category_data.get('id')
@@ -96,6 +130,7 @@ def init_routes(app):
         return jsonify(delete_category_), 200
 
     @app.get('/record/<string:record_id>')
+    @jwt_required()
     def get_record(record_id):
         if not is_valid_uuid(record_id):
             return jsonify({'error': 'Invalid record_id format. Expected UUID.'}), 400
@@ -110,6 +145,7 @@ def init_routes(app):
         return jsonify(get_record_data), 200
 
     @app.get('/record')
+    @jwt_required()
     def ger_records():
         user_id = request.args.get('user id')
         category_id = request.args.get('category id')
@@ -151,6 +187,7 @@ def init_routes(app):
             return jsonify(get_record_data), 200
 
     @app.post('/record')
+    @jwt_required()
     def create_record():
         record_data = request.get_json()
         request_record_user_id = record_data.get('user id')
@@ -173,6 +210,7 @@ def init_routes(app):
             return jsonify({'error': 'Missing values!'}), 400
 
     @app.delete('/record/<string:record_id>')
+    @jwt_required()
     def delete_record(record_id):
         if not is_valid_uuid(record_id):
             return jsonify({'error': 'Invalid record id format. Expected UUID.'}), 400
@@ -187,12 +225,14 @@ def init_routes(app):
         return jsonify(delete_record_), 200
 
     @app.get('/allCurrency')
+    @jwt_required()
     def get_currency():
         with conn.cursor() as cur:
             get_all_currency = get_currency_from_db(cur)
         return jsonify(get_all_currency), 200
 
     @app.post('/createCurrency')
+    @jwt_required()
     def create_currency():
         data = request.get_json()
         request_currency = data.get('currency name')
