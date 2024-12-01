@@ -64,3 +64,9 @@ def get_currency_from_db(cur):
     get_currency_data = cur.fetchall()
     cur.close()
     return {'Currency': get_currency_data}
+
+def get_user_id(cur, name):
+    cur.execute(f'''SELECT id FROM "User" WHERE "user_name" = %s''', (name,))
+    result = cur.fetchone()
+    cur.close()
+    return result[0]
