@@ -10,6 +10,7 @@ class UserModel(BaseModel):
     user_name = Column(String(50), nullable=False)
     currency_id = Column(UUID(as_uuid=True), ForeignKey('Currency.id'), nullable=True)
     currency = relationship('CurrencyModel', back_populates='users')
+    password = Column(String, nullable=False)
 
 
 CurrencyModel.users = relationship('UserModel', back_populates='currency')
