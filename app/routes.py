@@ -62,7 +62,7 @@ def init_routes(app):
         else:
             return jsonify({'error': 'Missing values!'}), 400
 
-    @app.get('/user_logining')
+    @app.post('/user_logining')
     def user_logining():
         user_data = request.get_json()
         request_user_name = user_data.get('name')
